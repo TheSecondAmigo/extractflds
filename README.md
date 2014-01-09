@@ -1,7 +1,7 @@
 extractflds
 ===========
 
-Extract fields and generate PNG files from a CVS-like file
+Extract fields and generate PNG files from a CSV-like file
 
 This script allows a user to generate PNG files from a Csv-like file
 
