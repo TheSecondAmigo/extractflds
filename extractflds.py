@@ -6,6 +6,7 @@
 import os
 import sys
 from optparse import OptionParser
+import csv
 
 USAGE_MSG = """
 
@@ -43,6 +44,8 @@ if __name__ == '__main__':
     parser.add_option('--ignorefirst', dest='ignorerow', action='store_true')
 
     (options, args) = parser.parse_args()
+
+    if not options.xcol:
         options.xcol = 0
     else:
         options.xcol -= 1
@@ -78,39 +81,31 @@ if __name__ == '__main__':
     try:
         fd = open(args[0], "r")
     except IOError as e:
-            print "I/O error({0}): {1}".format(e.errno, e.strerror)
-            sys.exit(1)
+	    print "I/O error({0}): {1}".format(e.errno, e.strerror)
+	    sys.exit(1)
 
     dname = os.path.realpath(args[0])
     gnuname = dname + '.gnu'
     pngname = dname + '.png'
-    outname = dname + '.out'        fdout = open(outname, "w")
+    outname = dname + '.out'
+
+    try:
+        fdout = open(outname, "w")
     except IOError as e:
-            print "I/O error({0}): {1}".format(e.errno, e.strerror)
-            sys.exit(1)
+	    print "I/O error({0}): {1}".format(e.errno, e.strerror)
+
+    csv_fd = csv.reader(fd, delimiter=options.colsep)
 
     lineno = 1
     if options.ignorerow:
-        line = fd.readline()
-        l = line.split(options.colsep)
-        try:
-            xfield = l[options.xcol]
-            yl = l[options.ycol].split(options.fldsep)
-            yfield = yl[options.fldcol]
-        except:
-                pass
-
+        line = csv_fd.next()
         lineno +=1
-    else:
-        xfield = 'XLabel'
-        yfield = 'YLabel'
 
     maxval = -1
-    for line in fd:
-        l = line.split(options.colsep)
+    for line in csv_fd:
         try:
-            xrow = l[options.xcol]
-            yl = l[options.ycol].split(options.fldsep)
+            xrow = line[options.xcol].strip()
+            yl = line[options.ycol].strip().split(options.fldsep)
             ycol = yl[options.fldcol]
             # print "%s %s" % (xrow, ycol)
             fdout.write("%s %s\n" % (xrow, ycol))
@@ -124,9 +119,8 @@ if __name__ == '__main__':
 
     try:
         fdout = open(outname, "w")
-        except IOError as e:
-            print "I/O error({0}): {1}".format(e.errno, e.strerror)
-            sys.exit(1)
+    except IOError as e:
+	    print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
     fd.close()
     fdout.close()
@@ -135,9 +129,7 @@ if __name__ == '__main__':
     try:
         fdout = open(gnuname, "w")
     except IOError as e:
-            print "I/O error({0}): {1}".format(e.errno, e.strerror)
-            print "I/O error on file: %s\n" % gnuname
-            sys.exit(1)
+	    print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
 
     # commands for gnu plotting
@@ -148,11 +140,11 @@ set output '%s'
 set grid
 set yrange [0: %d ]
 set title 'Row:Col %s, from file %s'
-set xlabel '%s'
-set ylabel '%s'
+set xlabel 'XLabel'
+set ylabel 'YLabel'
 set key right top  outside  title 'Resource' box 3
 plot '%s'  index 0 using 1:2 smooth unique title 'fldname' with linespoints
-ield, outname)
+    """ % (pngname, maxval + 100, str(options.xcol+1) + ":" + str(options.ycol+1), dname, outname)
 
     fdout.write(gnustr)
     fdout.write("\n")
@@ -161,6 +153,5 @@ ield, outname)
     os.system("gnuplot %s 2>&1 " % (gnuname))
 
     print "\n\nFiles created:\n\t%s\n\t%s\n\t%s\n\n"  % (gnuname, outname, pngname)
-
 
 
